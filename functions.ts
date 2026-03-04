@@ -1,4 +1,5 @@
-import { Matrix3x3, Vector2D, Vector3D } from "./types.js";
+import { getProjectionMatrix, getViewMatrix } from "./main.js";
+import { Matrix3x3, Matrix4x4, Vector2D, Vector3D, Vector4D } from "./types.js";
 
 export enum RotateAxis{
     X_AXIS = "x_axis",
@@ -35,48 +36,33 @@ class EngineMath{
             return this.project(cameraRotation, cameraPosition, a.x, a.y, a.z);
         }
 
-        const x = a as number;
-        const y = b as number;
-        const z = c as number;
-        let relative = new Vector3D(
-            x - cameraPosition.x,
-            y - cameraPosition.y,
-            z - cameraPosition.z
-        );
+        const worldX = a as number;
+        const worldY = b as number;
+        const worldZ = c as number;
 
-        const yaw = cameraRotation.y * Math.PI / 180;
-        const pitch = cameraRotation.x * Math.PI / 180;
-            
-        const forward = new Vector3D(
-            Math.cos(pitch) * Math.sin(yaw),
-            -Math.sin(pitch),
-            Math.cos(yaw) * Math.cos(pitch)
-        ).normalize();
+        const worldPoint = new Vector4D(worldX, worldY, worldZ, 1);
+
+        const viewPoint1 = getViewMatrix().multiply4DVector(worldPoint);
+
+        const NEAR_PLANE = 0.01;
         
-        const right = new Vector3D(
-            Math.cos(yaw),
-            0,
-            -Math.sin(yaw)
-        ).normalize();
+
+        const projData = getProjectionMatrix();
+
+        const viewPoint = projData.matrix.multiply4DVector(viewPoint1);
+
+        const x = viewPoint.x / viewPoint.w;
+        const y = viewPoint.y / viewPoint.w;
+        const z = viewPoint.w;
+
+
+        if(z <= NEAR_PLANE)
+            return null;
+        return new Vector2D(
+            x,
+            y
+        )
         
-        const up = forward.cross(right).normalize();
-
-
-        {      
-            const x = relative.dot(right);  
-            const y = relative.dot(up);  
-            const z = relative.dot(forward);  
-
-            const NEAR_PLANE = 0.1;
-            
-            if(z <= NEAR_PLANE)
-                return null;
-
-            return new Vector2D(
-                x/z,
-                y/z
-            )
-        }
     }
 
     public rotate(axis: RotateAxis, point: Vector3D, angle: number, center?: Vector3D){
@@ -161,6 +147,59 @@ class EngineMath{
         return result.add(center);
     }
 
+    public buildModelMatrix(rotation: Vector3D, position: Vector3D){
+        const rx = buildRotationX(rotation.x);
+        const ry = buildRotationY(rotation.y);
+        const rz = buildRotationZ(rotation.z);
+
+        const modelMatrix = rz.multiplyMatrix(ry).multiplyMatrix(rx);
+
+        modelMatrix.m[0][3] = position.x;
+        modelMatrix.m[1][3] = position.y;
+        modelMatrix.m[2][3] = position.z;
+
+        return modelMatrix;
+    }
+
+    public buildViewMatrix(right: Vector3D, up: Vector3D, forward: Vector3D, position: Vector3D){
+        const result = new Matrix4x4();
+
+        result.m[0][0] = right.x;
+        result.m[0][1] = right.y;
+        result.m[0][2] = right.z;
+        result.m[0][3] = -position.dot(right);
+
+        result.m[1][0] = up.x;
+        result.m[1][1] = up.y;
+        result.m[1][2] = up.z;
+        result.m[1][3] = -position.dot(up);
+
+        result.m[2][0] = forward.x;
+        result.m[2][1] = forward.y;
+        result.m[2][2] = forward.z;
+        result.m[2][3] = -position.dot(forward);
+
+        result.m[3][0] = 0;
+        result.m[3][1] = 0;
+        result.m[3][2] = 0;
+        result.m[3][3] = 1;
+
+        return result;
+    }
+
+    public buildProjectionMatrix(fov: number, aspect:number){
+
+        const rad = fov * (Math.PI/180);
+        const d = 1/Math.tan(rad/2);
+
+        return new Matrix4x4([
+            [d/aspect,0,0,0],
+            [0,d,0,0],
+            [0,0,1,0],
+            [0,0,1,0],
+        ]);
+    }
+
 }
 
 class EngineDraw{
@@ -224,4 +263,45 @@ export class EngineFunctions{
     }
 } 
 
+
+function buildRotationX(angle: number) : Matrix4x4{
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    return new Matrix4x4(
+        [
+            [1, 0, 0, 0],
+            [0, c,-s, 0],
+            [0, s, c, 0],
+            [0, 0, 0, 1],
+        ]
+    )
+}
+
+function buildRotationY(angle: number) : Matrix4x4{
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    return new Matrix4x4(
+        [
+            [ c, 0, s, 0],
+            [ 0, 1, 0, 0],
+            [-s, 0, c, 0],
+            [ 0, 0, 0, 1],
+        ]
+    )
+}
+
+function buildRotationZ(angle: number) : Matrix4x4{
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    return new Matrix4x4(
+        [
+            [ c,-s, 0, 0],
+            [ s, c, 0, 0],
+            [ 0, 0, 1, 0],
+            [ 0, 0, 0, 1],
+        ]
+    )
+}
+
 export const engineFunctions = new EngineFunctions();
+
