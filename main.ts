@@ -52,11 +52,10 @@ export function getViewMatrix(){
 return viewMatrix;
 }
 
-// === TUTAJ ZMIANA: Solar System zamiast asteroidów ===
 const bodies = generateSolarSystem();
 
 function logic(){
-    const SPEED = 10; // Szybszy ruch bo większa skala
+    const SPEED = 10; 
 
     projectionMatrix = engineFunctions.mathFunctions.buildProjectionMatrix(fieldOfView, aspectRatio);
 
@@ -86,17 +85,17 @@ function logic(){
     if(keys[" "]) cameraPosition = cameraPosition.add(new Vector3D(0, SPEED, 0)); // Spacja = góra
     if(keys["Shift"]) cameraPosition = cameraPosition.subtract(new Vector3D(0, SPEED, 0)); // Shift = dół
 
-    // === FIZYKA ===
+
     updatePhysics(bodies, 0.1);
 
-    // === RENDEROWANIE CIAŁ NIEBIESKICH ===
+
     bodies.forEach(body => {
         const modelMatrix = engineFunctions.mathFunctions.buildModelMatrix(
             body.rotation, 
             body.position
         );
 
-        // Rysuj krawędzie ciała
+
         context!.strokeStyle = body.color;
         context!.lineWidth = body.isSun ? 2 : 1;
 
@@ -123,7 +122,6 @@ function logic(){
             }
         });
 
-        // === RYSUJ TRAIL (ślad orbity) ===
         if(!body.isSun && body.trail.length > 1){
             const trails = getTrailLines(body);
             
@@ -135,7 +133,6 @@ function logic(){
                     const px1 = engineFunctions.mathFunctions.toPixel(proj1, canvasSize);
                     const px2 = engineFunctions.mathFunctions.toPixel(proj2, canvasSize);
 
-                    // Trail z zanikającą przezroczystością
                     context!.strokeStyle = body.color;
                     context!.globalAlpha = alpha * 0.5;
                     context!.lineWidth = 1;
@@ -146,14 +143,12 @@ function logic(){
         }
     });
 
-    // Słońce - dodatkowa "poświata"
     const sun = bodies.find(b => b.isSun);
     if(sun){
         const sunProj = engineFunctions.mathFunctions.project(cameraRotation, cameraPosition, sun.position);
         if(sunProj){
             const sunPx = engineFunctions.mathFunctions.toPixel(sunProj, canvasSize);
             
-            // Prosta poświata
             const gradient = context!.createRadialGradient(
                 sunPx.x, sunPx.y, 0,
                 sunPx.x, sunPx.y, 50
@@ -170,7 +165,6 @@ function logic(){
 }
 
 function animate(): void {
-    // Tło - ciemne z lekkim gradientem
     context!.fillStyle = "#0a0a15";
     context!.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -178,7 +172,7 @@ function animate(): void {
 
     logic();
 
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animate); 
 }
 
 animate();
