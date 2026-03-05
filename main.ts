@@ -11,8 +11,8 @@ if(!context){
 
 const canvasSize = new Vector2D(canvas.width, canvas.height);
 
-let cameraPosition = new Vector3D(0, 100, 200); // Wyżej i dalej żeby widzieć cały układ
-const cameraRotation = new Vector3D(30, 0, 0);  // Patrz lekko w dół
+let cameraPosition = new Vector3D(100, 100, 200); // Wyżej i dalej żeby widzieć cały układ
+const cameraRotation = new Vector3D(0, 0, 0);  // Patrz lekko w dół
 
 const keys: Record<string, boolean> = {};
 
@@ -54,6 +54,11 @@ return viewMatrix;
 
 const bodies = generateSolarSystem();
 
+let velocity = 0;
+const ACCELERATION = 1;
+const MAX_SPEED = 250;
+const FRICTION = 0.95;
+
 function logic(){
     const SPEED = 10; 
 
@@ -78,12 +83,21 @@ function logic(){
     viewMatrix = engineFunctions.mathFunctions.buildViewMatrix(right, up, forward, cameraPosition);
 
     // Sterowanie kamerą
-    if(keys["w"]) cameraPosition = cameraPosition.add(forward.multiply(SPEED));
-    if(keys["s"]) cameraPosition = cameraPosition.subtract(forward.multiply(SPEED));
-    if(keys["d"]) cameraPosition = cameraPosition.add(right.multiply(SPEED));
-    if(keys["a"]) cameraPosition = cameraPosition.subtract(right.multiply(SPEED));
-    if(keys[" "]) cameraPosition = cameraPosition.add(new Vector3D(0, SPEED, 0)); // Spacja = góra
-    if(keys["Shift"]) cameraPosition = cameraPosition.subtract(new Vector3D(0, SPEED, 0)); // Shift = dół
+
+    // W logic():
+    if (keys["w"] || keys["s"] || keys["a"] || keys["d"] || keys[" "] || keys["Shift"]) {
+        velocity += ACCELERATION;
+        if (velocity > MAX_SPEED) velocity = MAX_SPEED;
+    } else {
+        velocity *= FRICTION; 
+    }
+
+    if(keys["w"]) cameraPosition = cameraPosition.add(forward.multiply(velocity));
+    if(keys["s"]) cameraPosition = cameraPosition.subtract(forward.multiply(velocity));
+    if(keys["d"]) cameraPosition = cameraPosition.add(right.multiply(velocity));
+    if(keys["a"]) cameraPosition = cameraPosition.subtract(right.multiply(velocity));
+    if(keys[" "]) cameraPosition = cameraPosition.add(new Vector3D(0, velocity, 0)); // Spacja = góra
+    if(keys["Shift"]) cameraPosition = cameraPosition.subtract(new Vector3D(0, velocity, 0)); // Shift = dół
 
 
     updatePhysics(bodies, 0.1);

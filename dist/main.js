@@ -7,8 +7,8 @@ if (!context) {
     throw new Error("2D context not supported");
 }
 const canvasSize = new Vector2D(canvas.width, canvas.height);
-let cameraPosition = new Vector3D(0, 100, 200); // Wyżej i dalej żeby widzieć cały układ
-const cameraRotation = new Vector3D(30, 0, 0); // Patrz lekko w dół
+let cameraPosition = new Vector3D(100, 100, 200); // Wyżej i dalej żeby widzieć cały układ
+const cameraRotation = new Vector3D(0, 0, 0); // Patrz lekko w dół
 const keys = {};
 window.addEventListener("keydown", (e) => keys[e.key] = true);
 window.addEventListener("keyup", (e) => keys[e.key] = false);
@@ -32,10 +32,13 @@ export function getProjectionMatrix() {
 export function getViewMatrix() {
     return viewMatrix;
 }
-// === TUTAJ ZMIANA: Solar System zamiast asteroidów ===
 const bodies = generateSolarSystem();
+let velocity = 0;
+const ACCELERATION = 1;
+const MAX_SPEED = 250;
+const FRICTION = 0.95;
 function logic() {
-    const SPEED = 10; // Szybszy ruch bo większa skala
+    const SPEED = 10;
     projectionMatrix = engineFunctions.mathFunctions.buildProjectionMatrix(fieldOfView, aspectRatio);
     const yaw = cameraRotation.y * Math.PI / 180;
     const pitch = cameraRotation.x * Math.PI / 180;
@@ -44,24 +47,30 @@ function logic() {
     const up = forward.cross(right).normalize();
     viewMatrix = engineFunctions.mathFunctions.buildViewMatrix(right, up, forward, cameraPosition);
     // Sterowanie kamerą
+    // W logic():
+    if (keys["w"] || keys["s"] || keys["a"] || keys["d"] || keys[" "] || keys["Shift"]) {
+        velocity += ACCELERATION;
+        if (velocity > MAX_SPEED)
+            velocity = MAX_SPEED;
+    }
+    else {
+        velocity *= FRICTION;
+    }
     if (keys["w"])
-        cameraPosition = cameraPosition.add(forward.multiply(SPEED));
+        cameraPosition = cameraPosition.add(forward.multiply(velocity));
     if (keys["s"])
-        cameraPosition = cameraPosition.subtract(forward.multiply(SPEED));
+        cameraPosition = cameraPosition.subtract(forward.multiply(velocity));
     if (keys["d"])
-        cameraPosition = cameraPosition.add(right.multiply(SPEED));
+        cameraPosition = cameraPosition.add(right.multiply(velocity));
     if (keys["a"])
-        cameraPosition = cameraPosition.subtract(right.multiply(SPEED));
+        cameraPosition = cameraPosition.subtract(right.multiply(velocity));
     if (keys[" "])
-        cameraPosition = cameraPosition.add(new Vector3D(0, SPEED, 0)); // Spacja = góra
+        cameraPosition = cameraPosition.add(new Vector3D(0, velocity, 0)); // Spacja = góra
     if (keys["Shift"])
-        cameraPosition = cameraPosition.subtract(new Vector3D(0, SPEED, 0)); // Shift = dół
-    // === FIZYKA ===
+        cameraPosition = cameraPosition.subtract(new Vector3D(0, velocity, 0)); // Shift = dół
     updatePhysics(bodies, 0.1);
-    // === RENDEROWANIE CIAŁ NIEBIESKICH ===
     bodies.forEach(body => {
         const modelMatrix = engineFunctions.mathFunctions.buildModelMatrix(body.rotation, body.position);
-        // Rysuj krawędzie ciała
         context.strokeStyle = body.color;
         context.lineWidth = body.isSun ? 2 : 1;
         body.edges.forEach(edge => {
@@ -81,7 +90,6 @@ function logic() {
                 engineFunctions.drawFunctions.drawLine(start, end);
             }
         });
-        // === RYSUJ TRAIL (ślad orbity) ===
         if (!body.isSun && body.trail.length > 1) {
             const trails = getTrailLines(body);
             trails.forEach(({ start, end, alpha }) => {
@@ -90,7 +98,6 @@ function logic() {
                 if (proj1 && proj2) {
                     const px1 = engineFunctions.mathFunctions.toPixel(proj1, canvasSize);
                     const px2 = engineFunctions.mathFunctions.toPixel(proj2, canvasSize);
-                    // Trail z zanikającą przezroczystością
                     context.strokeStyle = body.color;
                     context.globalAlpha = alpha * 0.5;
                     context.lineWidth = 1;
@@ -100,13 +107,11 @@ function logic() {
             });
         }
     });
-    // Słońce - dodatkowa "poświata"
     const sun = bodies.find(b => b.isSun);
     if (sun) {
         const sunProj = engineFunctions.mathFunctions.project(cameraRotation, cameraPosition, sun.position);
         if (sunProj) {
             const sunPx = engineFunctions.mathFunctions.toPixel(sunProj, canvasSize);
-            // Prosta poświata
             const gradient = context.createRadialGradient(sunPx.x, sunPx.y, 0, sunPx.x, sunPx.y, 50);
             gradient.addColorStop(0, "rgba(255, 200, 50, 0.3)");
             gradient.addColorStop(1, "rgba(255, 200, 50, 0)");
@@ -118,7 +123,6 @@ function logic() {
     }
 }
 function animate() {
-    // Tło - ciemne z lekkim gradientem
     context.fillStyle = "#0a0a15";
     context.fillRect(0, 0, canvas.width, canvas.height);
     engineFunctions.drawFunctions.setContext(context);

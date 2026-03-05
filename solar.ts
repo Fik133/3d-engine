@@ -14,35 +14,35 @@ export type CelestialBody = {
     isSun: boolean;
 };
 
-const G = 50; // Stała grawitacyjna (dostosowana do symulacji)
-const MAX_TRAIL = 100;
+const G = 10; // Stała grawitacyjna (dostosowana do symulacji)
+const MAX_TRAIL = 1000;
 
 export function generateSolarSystem(): CelestialBody[] {
     const bodies: CelestialBody[] = [];
     
     // Słońce
     bodies.push(createBody({
-        radius: 8,
+        radius: 1000,
         position: new Vector3D(0, 0, 0),
         velocity: new Vector3D(0, 0, 0),
-        mass: 1000000,
+        mass: 100000000,
         color: "hsl(45, 100%, 60%)",
         isSun: true
     }));
     
     // Planety - [odległość, prędkość orbitalna, rozmiar, masa, kolor]
     const planets: [number, number, number, number, string][] = [
-        [5000,  2.8,  1.0,  10, "hsl(30, 50%, 50%)"],   // Merkury
-        [4500,  2.3,  1.5,  20, "hsl(45, 60%, 70%)"],   // Wenus
-        [6000/3,  2.0,  1.8,  25, "hsl(210, 70%, 55%)"],  // Ziemia
-        [5300/3,  1.7,  1.3,  15, "hsl(15, 70%, 50%)"],   // Mars
-        [3400, 1.3,  4.0,  200, "hsl(35, 60%, 65%)"],  // Jowisz
-        [1500/3, 1.0,  3.5,  150, "hsl(45, 50%, 70%)"],  // Saturn
+        [1000*2,  1,  ,  3000, "hsl(30, 50%, 50%)"],   // Merkury
+        [2000*2,  1,  4,  5000, "hsl(45, 60%, 70%)"],   // Wenus
+        [3000*2,  1,  15,  4000, "hsl(210, 70%, 55%)"],  // Ziemia
+        [4000*2,  1,  20,  10000, "hsl(15, 70%, 50%)"],   // Mars
+        [5000*2, 1,  12,  12000, "hsl(35, 60%, 65%)"],  // Jowisz
+        [6000*2, 1,  3,  15000, "hsl(45, 50%, 70%)"],  // Saturn
     ];
     
 
 
-    const SUN_MASS = 1000000;
+    const SUN_MASS = 100000000;
 
     planets.forEach(([dist, orbitalVelocity, radius, mass, color]) => {
         const angle = Math.random() * Math.PI * 2;
@@ -51,7 +51,7 @@ export function generateSolarSystem(): CelestialBody[] {
         const orbitalSpeed = Math.sqrt(G * SUN_MASS / dist);
 
         bodies.push(createBody({
-            radius: 1/3*mass,
+            radius: radius*5,
             position: new Vector3D(
                 Math.cos(angle) * dist,
                 (Math.random() - 0.5) * 1000,
@@ -148,7 +148,6 @@ function generateSphere(radius: number, subdivisions: number) {
         [4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]
     ];
     
-    // Subdywizja dla gładszej sfery
     for (let s = 0; s < subdivisions; s++) {
         const newFaces: number[][] = [];
         const midCache: Map<string, number> = new Map();
@@ -249,7 +248,7 @@ export function updatePhysics(bodies: CelestialBody[], dt: number = 1) {
     }
 }
 
-// Funkcja do rysowania trailów (wywołaj osobno w renderze)
+// Funkcja do rysowania trails (wywołaj osobno w renderze)
 export function getTrailLines(body: CelestialBody): { start: Vector3D; end: Vector3D; alpha: number }[] {
     const lines: { start: Vector3D; end: Vector3D; alpha: number }[] = [];
     
