@@ -10,7 +10,7 @@ export function generateSolarSystem() {
         velocity: new Vector3D(0, 0, 0),
         mass: 100000000,
         color: "hsl(45, 100%, 60%)",
-        isSun: true
+        isSun: true,
     }));
     // Planety - [odległość, prędkość orbitalna, rozmiar, masa, kolor]
     const planets = [
@@ -25,14 +25,14 @@ export function generateSolarSystem() {
     planets.forEach(([dist, orbitalVelocity, radius, mass, color]) => {
         const angle = Math.random() * Math.PI * 2;
         // Prędkość orbitalna z fizyki: v = sqrt(G * M / r)
-        const orbitalSpeed = Math.sqrt(G * SUN_MASS / dist);
+        const orbitalSpeed = Math.sqrt((G * SUN_MASS) / dist);
         bodies.push(createBody({
             radius: radius * 5,
             position: new Vector3D(Math.cos(angle) * dist, (Math.random() - 0.5) * 1000, Math.sin(angle) * dist),
             velocity: new Vector3D(-Math.sin(angle) * orbitalSpeed, 0, Math.cos(angle) * orbitalSpeed),
             mass,
             color,
-            isSun: false
+            isSun: false,
         }));
     });
     // Kilka komet z eliptycznymi orbitami
@@ -40,12 +40,12 @@ export function generateSolarSystem() {
         const angle = Math.random() * Math.PI * 2;
         const dist = 80 + Math.random() * 100;
         bodies.push(createBody({
-            radius: 1 / 3 * 100,
+            radius: (1 / 3) * 100,
             position: new Vector3D(Math.cos(angle) * dist, (Math.random() - 0.5) * 50, Math.sin(angle) * dist),
             velocity: new Vector3D(-Math.sin(angle) * 1.5 + (Math.random() - 0.5), (Math.random() - 0.5) * 0.5, Math.cos(angle) * 1.5 + (Math.random() - 0.5)),
             mass: 100,
             color: "hsl(200, 80%, 80%)",
-            isSun: false
+            isSun: false,
         }));
     }
     return bodies;
@@ -63,7 +63,7 @@ function createBody(opts) {
         radius: opts.radius,
         color: opts.color,
         trail: [],
-        isSun: opts.isSun
+        isSun: opts.isSun,
     };
 }
 function generateSphere(radius, subdivisions) {
@@ -83,10 +83,26 @@ function generateSphere(radius, subdivisions) {
         new Vector3D(-PHI, 0, 1),
     ];
     let faces = [
-        [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
-        [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
-        [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
-        [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
+        [0, 11, 5],
+        [0, 5, 1],
+        [0, 1, 7],
+        [0, 7, 10],
+        [0, 10, 11],
+        [1, 5, 9],
+        [5, 11, 4],
+        [11, 10, 2],
+        [10, 7, 6],
+        [7, 1, 8],
+        [3, 9, 4],
+        [3, 4, 2],
+        [3, 2, 6],
+        [3, 6, 8],
+        [3, 8, 9],
+        [4, 9, 5],
+        [2, 4, 11],
+        [6, 2, 10],
+        [8, 6, 7],
+        [9, 8, 1],
     ];
     for (let s = 0; s < subdivisions; s++) {
         const newFaces = [];
@@ -115,12 +131,16 @@ function generateSphere(radius, subdivisions) {
         faces = newFaces;
     }
     // Skaluj do właściwego rozmiaru
-    vertices = vertices.map(v => v.normalize().multiply(radius));
+    vertices = vertices.map((v) => v.normalize().multiply(radius));
     // Wyciągnij krawędzie z faces
     const edgeSet = new Set();
     const edges = [];
     for (const [a, b, c] of faces) {
-        [[a, b], [b, c], [c, a]].forEach(([i, j]) => {
+        [
+            [a, b],
+            [b, c],
+            [c, a],
+        ].forEach(([i, j]) => {
             const key = i < j ? `${i}_${j}` : `${j}_${i}`;
             if (!edgeSet.has(key)) {
                 edgeSet.add(key);
@@ -169,7 +189,7 @@ export function getTrailLines(body) {
         lines.push({
             start: body.trail[i - 1],
             end: body.trail[i],
-            alpha: i / body.trail.length // Zanika w kierunku starszych punktów
+            alpha: i / body.trail.length, // Zanika w kierunku starszych punktów
         });
     }
     return lines;

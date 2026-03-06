@@ -19,24 +19,25 @@ class EngineMath {
         const ndcY = (1 - y) * 0.5 * height;
         return new Vector2D(ndcX, ndcY);
     }
-    project(cameraRotation, cameraPosition, a, b, c) {
+    project(a, b, c) {
         if (a instanceof Vector3D) {
-            return this.project(cameraRotation, cameraPosition, a.x, a.y, a.z);
+            return this.project(a.x, a.y, a.z);
         }
         const worldX = a;
         const worldY = b;
         const worldZ = c;
-        const worldPoint = new Vector4D(worldX, worldY, worldZ, 1);
-        const viewPoint1 = getViewMatrix().multiply4DVector(worldPoint);
+        const viewMatrix = getViewMatrix();
+        const worldSpace = new Vector4D(worldX, worldY, worldZ, 1);
+        const cameraSpace = viewMatrix.multiply4DVector(worldSpace);
+        const clipSpace = getProjectionMatrix().matrix.multiply4DVector(cameraSpace);
         const NEAR_PLANE = 0.01;
-        const projData = getProjectionMatrix();
-        const viewPoint = projData.matrix.multiply4DVector(viewPoint1);
-        const x = viewPoint.x / viewPoint.w;
-        const y = viewPoint.y / viewPoint.w;
-        const z = viewPoint.w;
-        if (z <= NEAR_PLANE)
+        const x = clipSpace.x;
+        const y = clipSpace.y;
+        const z = clipSpace.z;
+        const w = clipSpace.w;
+        if (w <= NEAR_PLANE)
             return null;
-        return new Vector2D(x, y);
+        return new Vector2D(x / w, y / w);
     }
     rotate(axis, point, angle, center) {
         const realCenter = center !== null && center !== void 0 ? center : new Vector3D(0, 0, 0);
@@ -61,7 +62,7 @@ class EngineMath {
         const rotationSignature = [
             [1, 0, 0],
             [0, Math.cos(angle), -Math.sin(angle)],
-            [0, Math.sin(angle), Math.cos(angle)]
+            [0, Math.sin(angle), Math.cos(angle)],
         ];
         const rotationMatrix = new Matrix3x3(rotationSignature);
         return rotationMatrix.multiply3DVector(point);
@@ -70,7 +71,7 @@ class EngineMath {
         const rotationSignature = [
             [Math.cos(angle), 0, Math.sin(angle)],
             [0, 1, 0],
-            [-Math.sin(angle), 0, Math.cos(angle)]
+            [-Math.sin(angle), 0, Math.cos(angle)],
         ];
         const rotationMatrix = new Matrix3x3(rotationSignature);
         return rotationMatrix.multiply3DVector(point);
@@ -79,7 +80,7 @@ class EngineMath {
         const rotationSignature = [
             [Math.cos(angle), -Math.sin(angle), 0],
             [Math.sin(angle), Math.cos(angle), 0],
-            [0, 0, 1]
+            [0, 0, 1],
         ];
         const rotationMatrix = new Matrix3x3(rotationSignature);
         return rotationMatrix.multiply3DVector(point);
@@ -99,37 +100,37 @@ class EngineMath {
         result = this.rotateZ(result, angle);
         return result.add(center);
     }
-    buildModelMatrix(rotation, position) {
-        const rx = buildRotationX(rotation.x);
-        const ry = buildRotationY(rotation.y);
-        const rz = buildRotationZ(rotation.z);
+    buildModelMatrix(angle, position) {
+        const rx = buildRotationX(angle.x);
+        const ry = buildRotationY(angle.y);
+        const rz = buildRotationZ(angle.z);
         const modelMatrix = rz.multiplyMatrix(ry).multiplyMatrix(rx);
         modelMatrix.m[0][3] = position.x;
         modelMatrix.m[1][3] = position.y;
         modelMatrix.m[2][3] = position.z;
         return modelMatrix;
     }
-    buildViewMatrix(right, up, forward, position) {
-        const result = new Matrix4x4();
-        result.m[0][0] = right.x;
-        result.m[0][1] = right.y;
-        result.m[0][2] = right.z;
-        result.m[0][3] = -position.dot(right);
-        result.m[1][0] = up.x;
-        result.m[1][1] = up.y;
-        result.m[1][2] = up.z;
-        result.m[1][3] = -position.dot(up);
-        result.m[2][0] = forward.x;
-        result.m[2][1] = forward.y;
-        result.m[2][2] = forward.z;
-        result.m[2][3] = -position.dot(forward);
-        result.m[3][0] = 0;
-        result.m[3][1] = 0;
-        result.m[3][2] = 0;
-        result.m[3][3] = 1;
-        return result;
+    buildViewMatrix(right, up, forward, cameraPosition) {
+        const viewMatrix = new Matrix4x4();
+        viewMatrix.m[0][0] = right.x;
+        viewMatrix.m[0][1] = right.y;
+        viewMatrix.m[0][2] = right.z;
+        viewMatrix.m[0][3] = -cameraPosition.dot(right);
+        viewMatrix.m[1][0] = up.x;
+        viewMatrix.m[1][1] = up.y;
+        viewMatrix.m[1][2] = up.z;
+        viewMatrix.m[1][3] = -cameraPosition.dot(up);
+        viewMatrix.m[2][0] = forward.x;
+        viewMatrix.m[2][1] = forward.y;
+        viewMatrix.m[2][2] = forward.z;
+        viewMatrix.m[2][3] = -cameraPosition.dot(forward);
+        viewMatrix.m[3][0] = 0;
+        viewMatrix.m[3][1] = 0;
+        viewMatrix.m[3][2] = 0;
+        viewMatrix.m[3][3] = 1;
+        return viewMatrix;
     }
-    buildProjectionMatrix(fov, aspect) {
+    buildProjectionMatrix(aspect, fov) {
         const rad = fov * (Math.PI / 180);
         const d = 1 / Math.tan(rad / 2);
         return new Matrix4x4([
@@ -173,18 +174,9 @@ class EngineDraw {
         ctx.stroke();
     }
 }
-export class EngineFunctions {
-    constructor() {
-        this.mathFunctions = new EngineMath;
-        this.drawFunctions = new EngineDraw;
-    }
-    setContext(context) {
-        this.drawFunctions.setContext(context);
-    }
-}
 function buildRotationX(angle) {
-    const c = Math.cos(angle);
     const s = Math.sin(angle);
+    const c = Math.cos(angle);
     return new Matrix4x4([
         [1, 0, 0, 0],
         [0, c, -s, 0],
@@ -193,8 +185,8 @@ function buildRotationX(angle) {
     ]);
 }
 function buildRotationY(angle) {
-    const c = Math.cos(angle);
     const s = Math.sin(angle);
+    const c = Math.cos(angle);
     return new Matrix4x4([
         [c, 0, s, 0],
         [0, 1, 0, 0],
@@ -203,8 +195,8 @@ function buildRotationY(angle) {
     ]);
 }
 function buildRotationZ(angle) {
-    const c = Math.cos(angle);
     const s = Math.sin(angle);
+    const c = Math.cos(angle);
     return new Matrix4x4([
         [c, -s, 0, 0],
         [s, c, 0, 0],
@@ -212,4 +204,5 @@ function buildRotationZ(angle) {
         [0, 0, 0, 1],
     ]);
 }
-export const engineFunctions = new EngineFunctions();
+export const engineDraw = new EngineDraw();
+export const engineMath = new EngineMath();
