@@ -1,14 +1,52 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>3D Engine od zera</title>
-        <style>
-            body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-            canvas { background: #1d1d1d; border: 1px solid #333; }
-        </style>
-    </head>
-    <body>
-        <canvas id="c" width="1900" height="900"></canvas>
-        <script type="module" src="dist/main.js"></script>
-    </body>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Engine od zera</title>
+    <style>
+        body { 
+            background: #111; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: sans-serif;
+        }
+        
+        /* Kontener trzymający i canvas, i HUD */
+        #engine-container {
+            position: relative;
+        }
+
+        canvas { 
+            background: #1d1d1d; 
+            border: 1px solid #333; 
+            display: block;
+        }
+
+        /* Styl naszego debuggera macierzy */
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.75);
+            color: #00ffcc; /* Hakerski zielony */
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace; /* Ważne, żeby kolumny się równały! */
+            font-size: 14px;
+            pointer-events: none; /* Żeby nie blokowało klikania myszką w Canvas */
+        }
+    </style>
+</head>
+<body>
+    <div id="engine-container">
+        <canvas id="c" width="1000" height="800"></canvas>
+        <!-- Tutaj TypeScript będzie wstrzykiwał macierz -->
+        <div id="hud">Ładowanie macierzy...</div> 
+    </div>
+
+    <script type="module" src="dist/core/main.js"></script>
+</body>
 </html>
